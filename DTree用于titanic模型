@@ -1,0 +1,159 @@
+
+rm(list=ls())
+
+data("iris")
+head(iris)
+class(iris)
+
+t.test(iris$Sepal.Width[iris$Species=="setosa"],
+       iris$Sepal.Width[iris$Species=="versicolor"])
+
+table.iris=table(iris$Species)
+table.iris
+pie(table.iris)
+hist(iris$Sepal.Length)
+train.data=read.csv("D:/Machine Learning/Data/train.csv", na.strings=c("NA",""))
+str(train.data)
+train.data$Survived = factor(train.data$Survived)
+train.data$Pclass=factor(train.data$Pclass)
+str(train.data)
+#检测确实值
+is.na(train.data$Age)
+sum(is.na(train.data$Age)==TRUE)/length(train.data$Age)
+
+table(train.data$Embarked, useNA="always")
+train.data$Embarked[which (is.na(train.data$Embarked))]='S';
+table(train.data$Embarked,useNA = "always")
+
+#
+train.data$Name=as.character(train.data$Name)
+table_words=table (unlist(strsplit(train.data$Name,"\\s+")))
+sort(table_words[grep('\\.', names(table_words))],decreasing = TRUE)
+
+#stringr包提供的match函数来匹配包含。的子字符串
+library(stringr)
+tb=cbind(train.data$Age,str_match(train.data$Name,"[a-zA-Z]+\\."))
+table(tb[is.na(tb[,1]),2])
+#注意上述式子中，table对tb中空缺值和第二列排序
+
+mean.mr=mean(train.data$Age[grepl("Mr\\.",train.data$Name)& !is.na(train.data$Age)])
+mean.mrs=mean(train.data$Age[grepl("Mrs\\.",train.data$Name)& !is.na(train.data$Age)])
+mean.dr=mean(train.data$Age[grepl("Dr\\.",train.data$Name)& !is.na(train.data$Age)])
+mean.miss=mean(train.data$Age[grepl("Miss\\.",train.data$Name)& !is.na(train.data$Age)])
+mean.master=mean(train.data$Age[grepl("Master\\.",train.data$Name)& !is.na(train.data$Age)])
+#将平均年龄填入缺失值中
+train.data$Age[grepl("Mr\\.",train.data$Name)&is.na(train.data$Age)]= mean.mr
+train.data$Age[grepl("Mrs\\.",train.data$Name)&is.na(train.data$Age)]= mean.mrs
+train.data$Age[grepl("Dr\\.",train.data$Name)&is.na(train.data$Age)]= mean.dr
+train.data$Age[grepl("Miss\\.",train.data$Name)&is.na(train.data$Age)]= mean.miss
+train.data$Age[grepl("Master\\.",train.data$Name)&is.na(train.data$Age)]= mean.master
+
+#对数据的识别和可视化
+
+barplot(table(train.data$Survived),main="passenger survival", name=c("perished","survived"))
+
+#绘制乘客仓位等级分布的条形图
+
+barplot(table(train.data$Pclass), main="passenger Class", names=c("fisrt","second","third"))
+
+#用条形图展示性别信息
+
+barplot(table(train.data$Sex), main = "passenger gender")
+
+#用HIST函数绘制不同年龄乘客的数据
+hist(train.data$Age, main = "passenger Age", xlab = "age")
+
+#绘制乘客同船的兄妹或者配偶数----注意！！！这里用hist除了相反的情况，把频率显示在X轴上面
+barplot(table(train.data$SibSp), main = "passenger Siblings",)
+barplot(table(train.data$Parch), main = "passenger parch")
+hist(train.data$Fare, main = "passenger fare", xlab = "fare")
+barplot(table(train.data$Embarked),main = "port")
+
+#使用barplpt寻找什么性别的乘客丧生率更大
+counts= table( train.data$Survived,train.data$Sex)
+barplot(counts, col = c("darkblue","red"), legend=c("perished","survived"), main = "passenger survival by sex")
+
+
+#然后，检查乘客的仓位等级对逃生有否影响
+counts =table(train.data$Survived, train.data$Pclass)
+barplot(counts,col = c("darkblue","red"), legend=c("survived","perished"))
+
+#分析每种仓位中乘客性别的分布
+counts= table(train.data$Sex,train.data$Pclass)
+barplot(counts,col=c("darkblue","red"), legend=rownames(counts) )
+
+#查看乘客年龄分布
+hist(train.data$Age[which(train.data$Survived=="0")], main = "passenger age histogram", xlab = "age", ylab = "count", col = "blue", breaks = seq(0,80,by=2))
+hist(train.data$Age[which(train.data$Survived=="1")], col = "red", add = TRUE, breaks = seq(0,80, by=2))
+
+#画box图
+boxplot(train.data$Age~train.data$Survived,
+        main="passenger survival by age",
+        xlab="survived", ylab="age")
+#对年龄对细分对比
+
+train.child=train.data$Survived[train.data$Age<13]
+length(train.child[which(train.child==1)])/length(train.child)
+train.youth=train.data$Survived[train.data$Age>=13&train.data$Age<25]
+length(train.youth[which(train.child==1)])/length(train.youth)
+train.adult = train.data$Survived[train.data$Age>=20 & train.data$Age<65]
+length(train.adult[which(train.adult==1)])/length(train.adult)
+
+#vcd保重函数检查多欸变量关系
+mosaicplot(train.data$Pclass~train.data$Survived, color=TRUE,xlab="pclass")
+
+
+#基于决策树的预测
+#1.首先构建数据划分函数。data：输入数据集，p是从输入中生成的子集比重，s为种子
+split.data= function(data, p=0.7, s=666){
+  set.seed(s)
+  index=sample(1:dim(data)[1])
+  train=data[index[1:floor(dim(data)[1]*p)],]
+  test=data[index[((ceiling(dim(data)[1]*p))+1):dim(data)[1]],]
+  return(list(train=train, test=test))
+}
+
+#划分数据
+allset= split.data(train.data,p=0.7)
+trainset=allset$train
+testset=allset$test
+
+#导入party包
+install.packages('party')
+require('party')
+train.ctree = ctree(Survived~Pclass+Sex+Age+SibSp+Fare+Parch+Embarked, data = trainset)
+train.ctree
+plot(train.ctree, main="conditional inference tree of Titanic Dataset")
+
+#混淆矩阵验证预测结果的准确性
+ctree.predict= predict(train.ctree, testset)
+
+#导入caret包
+install.packages('caret')
+require('caret')
+install.packages('e1071')
+
+confusionMatrix(ctree.predict, testset$Survived)
+
+
+#ROC曲线评估性能： ROC曲线能反应正确预测率和错误预测率的关系
+#1.准备概率矩阵
+train.ctree.pred=predict(train.ctree, testset)
+train.ctree.prob= 1- unlist(treeresponse(train.ctree,testset),use.names = F)[seq(1,nrow(testset)*2,2)]
+
+#2.安装和导入ROC包
+install.packages('ROCR')
+require('ROCR')
+
+#根据概率生成ROC预测对象
+train.ctree.prob.rocr= prediction(train.ctree.prob,testset$Survive)
+
+#准备好ROC曲线的ROCR性能对象（tpr=true positive rate, fpr=falise positive rate)，计算曲线下面积
+train.ctree.perf=performance(train.ctree.prob.rocr,"tpr","fpr")
+train.ctree.auc.perf=performance(train.ctree.prob.rocr, measure="auc",x.measure="cutoff")
+
+#绘制ROC曲线
+plot(train.ctree.perf,col=2,colorize=T,main= paste("AUC:",train.ctree.auc.perf@y.values))
+
+#原理：首先依据概率矩阵生成预测对象，然后准备ROC曲线所需的ROCR性能对象（tpr,fpr)，以及AUC值，最后plot出roc曲线。
+#在ROC曲线中，曲线下面积越大（AUC=1预测效果最优），模型的准确度越高
