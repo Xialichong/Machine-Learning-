@@ -1,0 +1,9 @@
+#global recomdation
+cat("Recommendations based on global products contingency matrix")
+items<- names(data)
+for (item in items){
+cat (paste("Top 2 recommended items to buy with", item, "are: "))
+item.data <- subset(data[item,], select= names(data)[!names[data] %in% item])
+cat(names(item.data[order(item.data, decreasing=TRUE)][C(1,2)]))
+cat("\n")
+}
