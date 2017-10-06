@@ -1,0 +1,14 @@
+apriori算法
+Library(arules)
+Rules<- apriori(data, parameter=list(support, confidence, target = "rules")
+
+
+
+二维列联表，频繁项算法
+Crosstable(data, measure= "count"/"support"/"lift"(提升度), sort= True)
+一些主要问题： 
+	1. 大量产品将导致巨大的矩阵，这需要更多的空间和时间，难以处理
+	2. 在频繁项集中进行推荐时只能找到成对的产品，当需要从该模型中找两个以上的项目组合时，需要额外的与集合论相关的逻辑
+	3. 对于推荐引擎中的冷启动问题，即当开发一个新产品时，由于我们没有任何与之相关的历史信息，所以我们无法进行预测推荐或者预测其在市场中的销量情况。
+
+
