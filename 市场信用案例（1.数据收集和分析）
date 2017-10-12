@@ -20,16 +20,24 @@ to.factors<- function(df, variables){
   }
   return(df)
 }
+
+attach(credit.df)
+改变列名
+colnames(credit.df)<- c('Credit.rating','account.balance','credit.duration.months','previous.credit.payment.status','credit.purpose','credit.amount',
+                        'savings','employment.duration','installment.rate','marital.status','guarantor','residence.duration','current.assets','age','
+                        other.credits','apartment.type','bank.credit','occupation','dependents','telephone','foreign.worker')
+
 #选择要变换的数据
-categorial.vars<- c('Creditability','Account.Balance','Payment.Status.of.Previous.Credit','Purpose','Value.Savings.Stocks','Length.of.current.employment','Instalment.per.cent',
-                    'Sex...Marital.Status', 'Guarantors','Duration.in.Current.address','Most.valuable.available.asset', 'Concurrent.Credits', 'Type.of.apartment','No.of.Credits.at.this.Bank',
-                    'Occupation', 'No.of.dependents','Telephone', 'Foreign.Worker')
+categorial.vars<- c('Credit.rating','account.balance','previous.credit.payment.status','credit.purpose',
+                    'savings','employment.duration','installment.rate','marital.status','guarantor','residence.duration','current.assets',
+                    'other.credits','apartment.type','bank.credit','occupation','dependents','telephone','foreign.worker')
 credit.df<- to.factors(df= credit.df, variables = categorial.vars)
 str(credit.df)
 
 
 library(gridExtra)
 library(pastecs)
+require(pastecs)
 library(ggplot2)
 library(gmodels)
 #获取数值变量的汇总统计量
@@ -41,13 +49,13 @@ get.numeric.variable.stats<- function(indep.var, detailed= FALSE) {
   }else{
     var.stats<-summary(indep.var)
   }
-df<-data.frame(round(as.numeric(var.stats,2)))
-colnames(df)<- deparse(substitute(indep.var))
-rownames(df)<- names(var.stats)
-if (names(dev.cur())!= "null device"){
-  dev.off()
-}
-grid.table(t(df))
+  df<-data.frame(round(as.numeric(var.stats,2)))
+  colnames(df)<- deparse(substitute(indep.var))
+  rownames(df)<- names(var.stats)
+  if (names(dev.cur())!= "null device"){
+    dev.off()
+  }
+  grid.table(t(df))
 }
 
 #接下来建立一些可视化数据变量的函数，用直方图和箱图对特征进行分布
@@ -55,7 +63,7 @@ visualize.distribution<- function(indep.var){
   p11<- qplot(indep.var,geom="histogram",
               fill=I('gray'), binwidth=5,
               col=I('black'))+ theme_bw()
-  p12<-qplot(indep.var，geom =  "density",
+  p12<-qplot(indep.var,geom =  "density",
              fill=I('gray'), binwidth=5,
              col=I('black'))+theme_bw()
   grid.arrange(p11,p12,ncol=2)
@@ -103,7 +111,7 @@ visualize.contingency.table<- function(dep.var,indep.var){
   if(names(dev.cur())!="null device"){
     dev.off()
   }
-mosaicplot(dep.var~indep.var,color=T,main = "contigency table plot")
+  mosaicplot(dep.var~indep.var,color=T,main = "contigency table plot")
 }
 
 #数据分析细节
@@ -111,58 +119,58 @@ mosaicplot(dep.var~indep.var,color=T,main = "contigency table plot")
 attach(credit.df)
 
 #定义credibility为应变量，dep.var,其他为自变量
-get.categorical.variable.stats(Creditability)
-visualize.barchart(Creditability)
+get.categorical.variable.stats(Credit.rating)
+visualize.barchart(Credit.rating)
 
 #分析account.balance这一特征
-get.categorical.variable.stats(Account.Balance)
-visualize.barchart(Account.Balance)
+get.categorical.variable.stats(account.balance)
+visualize.barchart(account.balance)
 #合并列中的3和4的类别
 library(car)
 #record classes and update data frame
-new.account.balance<- recode(Account.Balance,"1=1;2=2;3=3;4=3")
-credit.df$Account.Balance<- new.account.balance
-get.contigency.table(Creditability,new.account.balance,stat.tests = T)
-visualize.contingency.table(Creditability,new.account.balance)
+new.account.balance<- recode(account.balance,"1=1;2=2;3=3;4=3")
+credit.df$account.balance<- new.account.balance
+get.contigency.table(Credit.rating,new.account.balance,stat.tests = T)
+visualize.contingency.table(Credit.rating,new.account.balance)
 
 #上式进行两项统计检验：卡方检验（chi-squared test）和F检验（Fisher's test），可用于列联表中。P<0.05,所以表示有关联。
 
 #接下来研究credit.duration.months
-get.numeric.variable.stats(Duration.of.Credit..month.)
+get.numeric.variable.stats(credit.duration.months)
 #我们看到变量都是以月计数的，并且我们还获得了该特征的典型汇总统计量，现在我们同时用直方图和密度图和箱图对该特征值的整体分布进行可视化。
-visualize.distribution(Duration.of.Credit..month.)
-visual.boxplot(Duration.of.Credit..month.,Creditability)
+visualize.distribution(credit.duration.months)
+visual.boxplot(credit.duration.months,Credit.rating)
 
 
 #下一个变量， previous credit payment status先前贷款的支付情况
-get.categorical.variable.stats(Payment.Status.of.Previous.Credit)
-visualize.barchart(Payment.Status.of.Previous.Credit)
+get.categorical.variable.stats(previous.credit.payment.status)
+visualize.barchart(previous.credit.payment.status)
 #record class and update data frame
-new.previous.credit.payment.status<- recode(Payment.Status.of.Previous.Credit,"0=1;1=1;2=2;3=3;4=3")
-credit.df$Payment.Status.of.Previous.Credit<-new.previous.credit.payment.status
+new.previous.credit.payment.status<- recode(previous.credit.payment.status,"0=1;1=1;2=2;3=3;4=3")
+credit.df$previous.credit.payment.status<-new.previous.credit.payment.status
 #contigency table
-get.contigency.table(Creditability,new.previous.credit.payment.status)
+get.contigency.table(Credit.rating,new.previous.credit.payment.status)
 
 #看credit purpose
-get.categorical.variable.stats(Purpose)
+get.categorical.variable.stats(credit.purpose)
 #合并不重要的项目
-new.credit.purpose<-recode(Purpose,"0=4;1=1;2=2;3=3;4=3;5=3;6=3;7=4;8=4;9=4;10=4")
-credit.df$Purpose<- new.credit.purpose
-get.contigency.table(Creditability,new.credit.purpose)
+new.credit.purpose<-recode(credit.purpose,"0=4;1=1;2=2;3=3;4=3;5=3;6=3;7=4;8=4;9=4;10=4")
+credit.df$credit.purpose<- new.credit.purpose
+get.contigency.table(Credit.rating,new.credit.purpose)
 
 #分析credit.amount， 贷款量
-get.numeric.variable.stats(Credit.Amount)
-visualize.distribution(Credit.Amount)
-visual.boxplot(Credit.Amount, Creditability)
+get.numeric.variable.stats(credit.amount)
+visualize.distribution(credit.amount)
+visual.boxplot(credit.amount, Credit.rating)
 
 #savings
-new.credit.savings<- recode(Value.Savings.Stocks,"1=1;2=2;3=3;4=3;5=4")
-credit.df$Value.Savings.Stocks<- new.credit.savings
-get.contigency.table(Creditability,new.credit.savings)
+new.credit.savings<- recode(savings,"1=1;2=2;3=3;4=3;5=4")
+credit.df$savings<- new.credit.savings
+get.contigency.table(Credit.rating,new.credit.savings)
 
 #employment
-new.credit.employment<- recode(Length.of.current.employment,"1=1;2=1;3=2;4=3;5=4")
-credit.df$Length.of.current.employment<-new.credit.employment
+new.credit.employment<- recode(employment.duration,"1=1;2=1;3=2;4=3;5=4")
+credit.df$employment.duration<-new.credit.employment
 get.contigency.table(Creditability,new.credit.employment)
 
 #installment
@@ -170,13 +178,13 @@ get.contigency.table(Creditability,Instalment.per.cent,stat.tests = TRUE)
 #没什么显著关系，排除
 
 #martial status
-new.martial.status<- recode(Sex...Marital.Status,"1=1;2=1;3=2;4=3")
-credit.df$Sex...Marital.Status<- new.martial.status
+new.martial.status<- recode(marital.status,"1=1;2=1;3=2;4=3")
+credit.df$marital.status<- new.martial.status
 get.contigency.table(Creditability,new.martial.status, stat.tests = TRUE)
 
 #guarantor
-new.guarantor<- recode(Guarantors,"1=1;2=2;3=2")
-credit.df$Guarantors<-new.guarantor
+new.guarantor<- recode(guarantor,"1=1;2=2;3=2")
+credit.df$guarantor<-new.guarantor
 get.contigency.table(Creditability,new.guarantor,stat.tests = TRUE)
 #无关
 
@@ -189,20 +197,20 @@ fisher.test(Creditability,credit.df$Most.valuable.available.asset)
 chisq.test(Creditability,Most.valuable.available.asset)
 
 #age
-get.numeric.variable.stats(Age..years.)
-visualize.distribution(Age..years.)
-visual.boxplot(Age..years., Creditability)
+get.numeric.variable.stats(age)
+visualize.distribution(age)
+visual.boxplot(age, Credit.rating)
 
 #others
-new.other.credits<- recode(credit.df$Concurrent.Credits,"1=1;2=1;3=2")
-credit.df$Concurrent.Credits<-new.other.credits                           
-get.contigency.table(Creditability,new.other.credits,stat.tests = T)
+new.other.credits<- recode(credit.df$other.credits,"1=1;2=1;3=2")
+credit.df$other.credits<-new.other.credits                           
+get.contigency.table(Credit.rating,new.other.credits,stat.tests = T)
 
 #apartment type，有关联
 
 #bank credits，无关联
-new.bank.credits<- recode(credit.df$No.of.Credits.at.this.Bank,"1=1;2=2;3=2;4=2")
-credit.df$No.of.Credits.at.this.Bank<-new.bank.credits
+new.bank.credits<- recode(credit.df$bank.credit,"1=1;2=2;3=2;4=2")
+credit.df$bank.credit<-new.bank.credits
 
 #occupancation无关联
 
