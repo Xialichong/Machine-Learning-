@@ -1,0 +1,36 @@
+library(caret)
+library(ROCR)
+test.class.var
+test.feature.vars
+
+trainsformed.train<- train.data
+trainsformed.test<-test.data
+for (variable in categorial.vars) {
+  new.train.var<-make.names(train.data[[variable]])
+  trainsformed.train[[variable]]<-new.train.var
+  new.test.var<- make.names(test.data[[variable]])
+  trainsformed.test[[variable]]<-new.test.var
+}
+trainsformed.train<-to.factors(df=trainsformed.train,variables=categorial.vars)
+trainsformed.test<-to.factors(df=trainsformed.test, variables = categorial.vars)
+trainsformed.test.feature.vars<- trainsformed.test[,-1]
+trainsformed.test.class.vars<- trainsformed.test[,1]
+
+formula.init
+nn.model<- train(formula.init, data = trainsformed.train, method="nnet")
+nn.predictions<- predict(nn.model, trainsformed.test.feature.vars,type = "raw")
+confusionMatrix(data = nn.predictions,reference = trainsformed.test.class.vars, positive = "X1")
+
+#绘制重要性图
+formula.init
+control<- trainControl(method = "repeatedcv",number = 10, repeats = 2)
+model<- train(formula.init,data = trainsformed.train, method="nnet",trControl=control)
+importance<- varImp(model,scale = FALSE)
+plot(importance)
+
+#替换特征
+formula.new<-"Creditability~Value.Savings.Stocks+Account.Balance+Payment.Status.of.Previous.Credit+Purpose+Value.Savings.Stocks"
+formula.new<-as.formula(formula.new)
+nnet.formula.new<- train(formula.new, data = trainsformed.train, method="nnet")
+nn.predictions.new<- predict(nnet.formula.new, trainsformed.test.feature.vars, type = "raw")
+confusionMatrix(data = nn.predictions.new, reference = trainsformed.test.class.vars,positive = "X1")
