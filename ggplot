@@ -1,0 +1,80 @@
+#ggplot主题合集https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/
+
+rm(list=ls())
+library(tidyverse)
+library(ggthemes)
+
+candyRankings <- read.csv("C:/Users/xialic/Documents/Learning/Kaggle Case/ggplot/candy-data.csv")
+candyProduction <- read.csv("C:/Users/xialic/Documents/Learning/Kaggle Case/ggplot/candy_production.csv")
+
+ggplot(data=candyRankings, aes(x=sugarpercent, y=pricepercent, label=competitorname))+
+  geom_point()+   #加点
+  geom_smooth(method = "lm")+#加fitted line
+  geom_text(check_overlap = T,# automatically reduce overlap (deletes some labels)
+            vjust="bottom",# adjust the vertical orientation
+            nudge_y = 0.01,
+            angle=30,# tilt the text 30 degrees
+            size=2)+# make the text smaller (to reduce overlap more)
+  labs(title = "More sugary candies are more expensive", # plot title
+       x = "Sugar content (percentile)", # x axis label
+       y = "Price (percentile)" # y axis label
+  )
+  
+  #points:1
+  #What are all the arguments aes() can take? As of November 2017 here's a list of all the possible aesthetic mappings: "adj", "alpha", "angle", "bg", "cex", "col", "color", "colour", "fg", "fill", "group", "hjust", "label", "linetype", "lower", "lty", "lwd", "max", "middle", "min", "pch", "radius", "sample", "shape", "size", "srt", "upper", "vjust", "weight", "width", "x", "xend", "xmax", "xmin", "xintercept", "y", "yend", "ymax", "ymin", "yintercept", "z". Note that some of these (like, "col", "color" and "colour") will be mapped to the same aesthetic.
+#remove points to make clear
+ggplot(data = candyRankings, aes(x = sugarpercent, 
+                                 y = pricepercent, 
+                                 label = competitorname
+)) +
+  geom_smooth(method = "lm") + # and then add a fitted line
+  geom_text(check_overlap = T,# automatically reduce overlap (deletes some labels)
+            angle = 30,# tilt the text 30 degrees
+            size = 2.5 # make the text smaller (to reduce overlap more)
+  ) + # and then add labels to the points
+  labs(title = "More sugary candies are more expensive", # plot title
+       x = "Sugar content (percentile)", # x axis label
+       y = "Price (percentile)" # y axis label
+  )
+
+#Barchart
+
+# select out the columns that have the features of the candy (chocolate, caramel, etc.)
+candyFeatures <- candyRankings %>% select(2:10)
+# make sure that these are booleans (logical)
+candyFeatures[] <- lapply(candyFeatures, as.logical)
+
+# make a bar plot
+ggplot(candyFeatures, aes(x = chocolate,fill=caramel)) + # set up the plot
+  geom_bar(position = "dodge")+# add the barpot
+  facet_wrap(c("caramel")) + # put each level of "caramel" in a different facet
+  scale_fill_manual(values=c("#BBBBBB", # a nice, neuteral grey 
+                             "#E69F00"))+ # a gold caramel color
+  labs(title = "Chocolate candies are more likely to have caramel", # title
+       x = "Is the candy chocolate?", # x axis
+       y = "Count of candies") + # y axis
+  theme(legend.position = c(0.9, 0.9), # move legend inside plot
+        strip.background = element_blank(), # remove strip from top of facets
+        strip.text.x = element_blank())  # remove text from top of facets
+
+
+#line charts
+# plot of US candy production per month, with trend line
+candyProduction[,1]<-as.Date(candyProduction[,1])
+as.numeric(candyProduction[,2])
+
+str(candyProduction)
+#Pay attention, the plot x,y should not be factor
+ggplot(data = candyProduction, aes(observation_date,IPG3113N)) +
+  geom_line()+  # add a line chart
+  geom_smooth()
+
+#adding costom themes
+linePlot <- ggplot(data = candyProduction, aes(x = observation_date, y = IPG3113N)) +
+  geom_line() + 
+  geom_smooth() +
+  labs(title = "Monthly candy production (US)",
+       x = "", # making the axis label blank will remove it
+       y = "As percent of 2012 production")
+
+linePlot+theme_calc()
