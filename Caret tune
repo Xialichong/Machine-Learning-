@@ -1,0 +1,83 @@
+# libraries we'll need
+library(tidyverse) # utility functions
+library(caret) # hyperparameter tuning
+library(randomForest) # for our model
+library(Metrics) # handy evaluation functions
+
+# read in our data & put it in a data frame
+player_statistics  <- read.csv("C:/Users/xialic/Documents/Learning/Kaggle Case/Tuning-caret/PUBG_Player_Statistics.csv")
+
+#clean data 
+#only information on solo plays
+player_statistics<- player_statistics%>%
+  select(starts_with("solo"))
+
+#check out the rows
+head(player_statistics)
+
+#remove all the column have same value like 0
+#make a data frame with the max & min value per column
+max_min<- data_frame(max=apply(player_statistics,2,max),
+                     min=apply(player_statistics,2,min),
+                     columns=names(player_statistics))
+#vector of useless column names
+useless_columns<- max_min$columns[max_min$min==max_min$max]
+#add minus signs so select() will remove them
+useless_columns<- paste("-", useless_columns,sep = "")
+#remove useless columns
+player_statistics<- player_statistics%>%
+  select_(.dots = useless_columns)
+# remove leaky variables
+player_statistics <- player_statistics %>%
+  group_by(solo_WinRatio) %>% #use group_by to protect our target variable
+  select(-contains("win")) %>% # remove any columns with "win" in the name
+  select(-contains("loss")) %>% # remove any columns with "loss" in the name
+  ungroup() # remove grouping
+# numeric data only
+player_statistics <- player_statistics %>%
+  na.omit() %>% 
+  select_if(is.numeric)
+
+# check out our final dataset
+str(player_statistics)
+
+# split data into testing & training
+set.seed(1234)
+
+# train/test split
+training_indexs <- createDataPartition(player_statistics$solo_WinRatio, p = .2, list = F)
+training <- player_statistics[training_indexs, ]
+testing  <- player_statistics[-training_indexs, ]
+
+# get predictors
+predictors <- training %>% select(-solo_WinRatio) %>% as.matrix()
+output <- training$solo_WinRatio
+# train a random forest model
+model <- randomForest(x = predictors, y = output,
+                      ntree = 50) # number of trees
+
+# check out the details
+model
+# check out our model's root mean squared error on the held out test data
+rmse(predict(model, testing), testing$solo_WinRatio)
+
+# use caret to pick a value for mtry
+tuned_model <- train(x = predictors, y = output,
+                     ntree = 5, # number of trees (passed ot random forest)
+                     method = "rf") # random forests
+
+print(tuned_model)
+# plot the rmse for various possible training values
+ggplot(tuned_model)
+
+print("base model rmse:")
+print(rmse(predict(model, testing), testing$solo_WinRatio))
+
+print("tuned model rmse:")
+print(rmse(predict(tuned_model$finalModel, testing), testing$solo_WinRatio))
+
+# plot both plots at once
+par(mfrow = c(1,2))
+
+varImpPlot(model, n.var = 5)
+varImpPlot(tuned_model$finalModel, n.var = 5)
