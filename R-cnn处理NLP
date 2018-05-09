@@ -1,0 +1,94 @@
+rm(list=ls())
+library(rJava)
+library(xlsxjars)
+library(tidyverse)
+library(xlsx)
+library(readxl)
+Sys.setlocale("LC_CTYPE","chinese")
+
+#提取目标值，删除所有空行
+data=read.xlsx("C:/Users/xialic/Documents/HP relatives/CS caseText/test.xlsx", 1,encoding = 'UTF-8')
+data<-data[,c(4,5,7)]
+final<-na.omit(data)
+
+#分成两组
+final_1<- final[,c(1,3)]
+final_2<- final[,c(2,3)]
+
+table(final_1$Category)
+
+#先处理final_1
+#分词，去停用词，生成文档
+library(tm)
+library(rJava)
+library(Rwordseg)
+#读取刚刚的“初始”语料库。
+text=final_1
+#读取停用词，stopwords_CN可在网上下载到。
+insertWords("异响")
+insertWords("禁用")
+insertWords("延保")
+insertWords("官网")
+insertWords("蓝屏")
+insertWords("白屏")
+insertWords("开机")
+
+data_stw <- readLines("C:/Users/xialic/Documents/HP relatives/CS caseText/ChineseStopWord.txt",encoding  = "UTF-8")
+Train_textseg<- gsub("[0-9 0123456789 <>~]","",text$Notes)
+type_textseg<-gsub("[0-9 0123456789 <>~]","",text$Category)
+#分词
+Train_textseg<-segmentCN(Train_textseg)
+type_textseg<- segmentCN(type_textseg)
+
+#textseg2<-gsub("[0-9 0123456789 <>~]","",text)
+#textseg2<-segmentCN(textseg2)
+#删stopword函数
+removeStopWords <- function(x,stopwords) {  
+  temp <- character(0)  
+  index <- 1  
+  xLen <- length(x)  
+  while (index <= xLen) {  
+    if (length(stopwords[stopwords==x[index]]) <1)  
+      temp<- c(temp,x[index])  
+    index <- index +1  
+  }  
+  temp  
+}  
+
+#去停用词
+Train_textseg <- lapply(Train_textseg,removeStopWords,data_stw)
+type_textseg<-lapply(type_textseg,removeStopWords,data_stw)
+
+
+
+#得到矩阵
+
+hlzjAll <- character(0)  
+hlzjAll <- Train_textseg  
+length(hlzjAll)  
+
+corpusAll<-Corpus(VectorSource(hlzjAll))
+(hlzjAll.dtm <-DocumentTermMatrix(corpusAll,control=list(wordLengths = c(2,Inf))))  
+inspect(hlzjAll.dtm)
+dtmAll_natrix<- as.matrix(hlzjAll.dtm)
+
+#分类
+rownames(dtmAll_natrix)[1:600]<- final_1$Category[1:600]
+rownames(dtmAll_natrix)[601:870]<- c("")
+train<- dtmAll_natrix[1:600,]
+predict<- dtmAll_natrix[601:870,]
+trainClass <- as.factor(rownames(train))
+library(class)
+hlzj_knnClassify<- knn(train,predict,trainClass)
+length(hlzj_knnClassify)
+
+hlzj_knnClassify[1:10]
+table(hlzj_knnClassify)
+
+hlzj.knnResult <-list(type=hlzj_knnClassify,text=final_1$Notes[601:870])  
+hlzj.knnResult <-as.data.frame(hlzj.knnResult)  
+fix(hlzj.knnResult)
+length(hlzj.knnResult)
+
+confusion_matrix <- table(final_1$Category[601:870])
+confusion_matrix
